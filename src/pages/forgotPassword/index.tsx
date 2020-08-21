@@ -1,5 +1,5 @@
-import React, { useCallback, useRef } from 'react';
-import { Link, useHistory } from 'react-router-dom';
+import React, { useCallback, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import * as Yup from 'yup';
 import { FiLogIn, FiMail } from 'react-icons/fi';
 import { Form } from '@unform/web';
@@ -12,19 +12,21 @@ import Button from '../../components/Button';
 import { useToast } from '../../hooks/Toast';
 
 import { Container, Content, Background, AnimationContainer } from './styles';
+import api from '../../services/apiClient';
 
 interface FormFields {
   email: string;
 }
 
 const ForgotPassword: React.FC = () => {
+  const [loading, setLoading] = useState(false);
   const formRef = useRef<FormHandles>(null);
   const { addToast } = useToast();
-  const history = useHistory();
 
   const handleSubmit = useCallback(
     async (data: FormFields) => {
       try {
+        setLoading(true);
         formRef.current?.setErrors({});
         const schema = Yup.object().shape({
           email: Yup.string()
@@ -35,8 +37,15 @@ const ForgotPassword: React.FC = () => {
           abortEarly: false,
         });
         //  recuperação de senha.
+        await api.post('/password/forgot', {
+          email: data.email,
+        });
 
-        history.push('/dashboard');
+        addToast({
+          type: 'success',
+          title: 'email de recuperação enviado',
+          description: 'Enviamos um email para você verifique seu email',
+        });
       } catch (error) {
         if (error instanceof Yup.ValidationError) {
           const errors = ValidationErrors(error);
@@ -50,9 +59,11 @@ const ForgotPassword: React.FC = () => {
           description:
             'Ocorreu um erro ao tentar realizar a recuperação de senha.',
         });
+      } finally {
+        setLoading(false);
       }
     },
-    [addToast, history],
+    [addToast],
   );
 
   return (
@@ -64,7 +75,9 @@ const ForgotPassword: React.FC = () => {
             <h1>Recuperar senha</h1>
             <Input name="email" placeholder="Email" icon={FiMail} />
 
-            <Button type="submit">Recuperar</Button>
+            <Button loading={loading} type="submit">
+              Recuperar
+            </Button>
           </Form>
 
           <Link to="/signin">
